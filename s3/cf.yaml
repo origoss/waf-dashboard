@@ -1,0 +1,46 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: The resources for the AWS WAF experiments.
+Parameters:
+  S3BucketName:
+    Type: String
+    Description: The name of the S3 bucket to be created.
+  CloudTrailS3BucketName:
+    Type: String
+    Description: The name of the S3 bucket to be created for CloudTrail logs.
+Resources:
+  Bucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Ref S3BucketName
+      VersioningConfiguration:
+        Status: Enabled
+  CTBucket:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: !Ref CloudTrailS3BucketName
+  BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties: 
+      Bucket: !Ref CTBucket
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Sid: AWSCloudTrailAclCheck20150319
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:GetBucketAcl
+            Resource: !Sub "arn:aws:s3:::${CTBucket}"
+          - Sid: AWSCloudTrailWrite20150319
+            Effect: Allow
+            Principal:
+              Service: cloudtrail.amazonaws.com
+            Action: s3:PutObject
+            Resource: !Sub "arn:aws:s3:::${CTBucket}/*"
+  CloudTrail:
+    Type: AWS::CloudTrail::Trail
+    DependsOn: BucketPolicy
+    Properties: 
+      IsLogging: true
+      S3BucketName: !Ref CTBucket
+

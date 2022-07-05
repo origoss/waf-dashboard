@@ -1,0 +1,56 @@
+* Compiling and uploading zipped binary to S3
+
+#+begin_src bash :results output
+  BUCKET_NAME=$(jq -r '.S3BucketName' <../params.json)
+  echo "BUCKET_NAME=${BUCKET_NAME}"
+  nix-build &&
+  aws s3api put-object --bucket ${BUCKET_NAME} \
+      --key lambda.zip \
+      --body result/main.zip
+#+end_src
+
+* Lambda
+** List
+
+#+begin_src bash :results output
+  aws lambda list-functions
+#+end_src
+
+** Logs
+*** Describe log groups
+
+#+begin_src bash :results output
+  aws logs describe-log-groups \
+      --log-group-name-prefix /aws/lambda/lambda-experiment \
+      --query 'logGroups[*].logGroupName'
+#+end_src
+
+*** Describe log streams
+
+#+begin_src bash :results output
+  LOG_GROUP_NAME=$(aws logs describe-log-groups \
+                   --log-group-name-prefix /aws/lambda/lambda-experiment \
+                   --output text \
+                   --query 'logGroups[0].logGroupName')
+  echo "Log streams of ${LOG_GROUP_NAME}"
+  aws logs describe-log-streams \
+      --log-group-name ${LOG_GROUP_NAME} \
+      --query 'logStreams[*].logStreamName'
+#+end_src
+
+*** Describe log events
+
+#+begin_src bash :results output
+  LOG_GROUP_NAME=$(aws logs describe-log-groups \
+                   --log-group-name-prefix /aws/lambda/lambda-experiment \
+                   --output text \
+                   --query 'logGroups[0].logGroupName')
+  LOG_STREAM_NAME=$(aws logs describe-log-streams \
+                        --log-group-name ${LOG_GROUP_NAME} \
+                        --output text \
+                        --query 'logStreams[-1].logStreamName')
+  echo "Log events of ${LOG_GROUP_NAME}::${LOG_STREAM_NAME}"
+  aws logs get-log-events \
+      --log-group-name ${LOG_GROUP_NAME} \
+      --log-stream-name ${LOG_STREAM_NAME}
+#+end_src

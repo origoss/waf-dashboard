@@ -1,0 +1,13 @@
+{
+    "S3CfStackName": "raiffeisen-waf-dashboarding-s3",
+    "S3BucketName": "origoss-raiffeisen-waf-dashboarding",
+    "S3KeyName": "lambda.zip",
+    "S3ObjectVersion": "fgwAlSu0uuXbrnnLbIqLGuPLLwphbr3.",
+    "WafCfStackName": "raiffeisen-waf-dashboarding-lambda",
+    "AlbSubnets": "subnet-e061e58a,subnet-825a9cce,subnet-c26695be",
+    "HostedZoneId": "Z0773363KQL7DOAC79FT",
+    "DnsName": "waf-test.origoss.com",
+    "VpcId": "vpc-02b96568",
+    "CloudTrailS3BucketName": "origoss-raiffeisen-waf-dashboarding-cloudtrail",
+    "DashboardName": "top-blocking-rules"
+}

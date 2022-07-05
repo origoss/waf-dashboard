@@ -1,0 +1,72 @@
+* Purpose
+
+This CloudFormation stack creates an IAM user with certain policies assigned to
+it.
+
+The policies allow all subsequent operations that are needed, such as WAF
+creation, etc.
+
+* CloudFormation operations
+
+These operations shall be performed with high-level privileges.
+
+** Create stack
+
+#+name: Create stack
+#+begin_src bash :results output
+  aws cloudformation create-stack         \
+      --stack-name ${STACK_NAME}          \
+      --capabilities CAPABILITY_NAMED_IAM \
+      --parameters $(jsonnet params.jsonnet | jq -c) \
+      --template-body file://user-cf.yaml
+#+end_src
+
+** Update stack
+
+#+name: Update stack
+#+begin_src bash :results output
+  aws cloudformation update-stack                    \
+      --stack-name ${STACK_NAME}                     \
+      --capabilities CAPABILITY_NAMED_IAM \
+      --parameters $(jsonnet params.jsonnet | jq -c) \
+      --template-body file://user-cf.yaml
+#+end_src
+
+** Describe stack events
+
+#+name: Describe stack events
+#+begin_src bash :results output
+  aws cloudformation describe-stack-events \
+      --stack-name ${STACK_NAME}
+#+end_src
+
+** Describe stack resources
+
+#+name: Describe stack resources
+#+begin_src bash :results output
+  aws cloudformation describe-stack-resources \
+      --stack-name ${STACK_NAME}
+#+end_src
+
+** Delete stack
+
+#+name: Delete stack
+#+begin_src bash :results output
+  aws cloudformation delete-stack         \
+      --stack-name ${STACK_NAME}
+#+end_src
+
+* Create new access token
+
+After the IAM user is created, we need to create a token, which is used in the
+later steps.
+
+#+begin_src bash :results output
+  USERNAME=$(aws cloudformation describe-stacks \
+                 --stack-name=${STACK_NAME} \
+                 --query "Stacks[0].Outputs[?OutputKey=='IamUserName'].OutputValue" \
+                 --output=text)
+  aws iam create-access-key \
+      --user-name ${USERNAME} \
+      --query 'AccessKey.{"AccessKeyId": AccessKeyId, "SecretAccessKey": SecretAccessKey}'
+#+end_src

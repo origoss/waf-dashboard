@@ -1,0 +1,52 @@
+* Managing Custom resource with CloudFormation
+** Create Stack
+
+#+name: Create stack
+#+begin_src bash :results output
+  export STACK_NAME=$(jq -r '.WafCfStackName' <../params.json)
+  aws cloudformation create-stack         \
+      --stack-name ${STACK_NAME}          \
+      --capabilities CAPABILITY_NAMED_IAM \
+      --parameters $(jsonnet params.jsonnet | jq -c) \
+      --template-body file://cf.yaml
+#+end_src
+
+** Update Stack
+
+#+name: Update stack
+#+begin_src bash :results output
+  export STACK_NAME=$(jq -r '.WafCfStackName' <../params.json)
+  aws cloudformation update-stack                    \
+      --stack-name ${STACK_NAME}                     \
+      --capabilities CAPABILITY_NAMED_IAM            \
+      --parameters $(jsonnet params.jsonnet | jq -c) \
+      --template-body file://cf.yaml
+#+end_src
+
+** Delete Stack
+
+#+name: Delete stack
+#+begin_src bash :results output
+  export STACK_NAME=$(jq -r '.WafCfStackName' <../params.json)
+  aws cloudformation delete-stack         \
+      --stack-name ${STACK_NAME}
+#+end_src
+
+** Describe stack resources
+
+#+name: Describe stack resources
+#+begin_src bash :results output
+  export STACK_NAME=$(jq -r '.WafCfStackName' <../params.json)
+  aws cloudformation describe-stack-resources \
+      --stack-name ${STACK_NAME}
+#+end_src
+
+** Describe stack events
+
+#+name: Describe stack events
+#+begin_src bash :results output
+  export STACK_NAME=$(jq -r '.WafCfStackName' <../params.json)
+  aws cloudformation describe-stack-events \
+      --stack-name ${STACK_NAME}
+#+end_src
+

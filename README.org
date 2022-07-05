@@ -1,0 +1,70 @@
+#+options: ':nil *:t -:t ::t <:t H:3 \n:nil ^:t arch:headline author:t
+#+options: broken-links:nil c:nil creator:nil d:(not "LOGBOOK") date:t e:t
+#+options: email:nil f:t inline:t num:t p:nil pri:nil prop:nil stat:t tags:t
+#+options: tasks:t tex:t timestamp:t title:t toc:nil todo:t |:t
+#+title: README
+#+date: <2022-07-05 Tue>
+#+author:
+#+email: gergely.szabo@origoss.com
+#+language: en
+#+select_tags: export
+#+exclude_tags: noexport
+#+creator: Emacs 28.1 (Org mode 9.5.2)
+#+cite_export:
+
+* Concept
+
+This repo demonstrates a working AWS WAF Dashboard which shows the top 5
+blocking rules.
+
+[[file:dashboard-screenshot.png][AWS WAF Dashboard (screenshot)]]
+
+In order to reach this result, the WebACL shall be configured with metrics
+generation enabled.
+
+The dashboard is configured with the following query expression:
+
+#+name: Dashboard query expression
+#+begin_src sql
+SELECT AVG(BlockedRequests)
+       FROM SCHEMA("AWS/WAFV2", LabelName,LabelNamespace,Region,WebACL)
+       GROUP BY LabelNamespace, LabelName
+       ORDER BY AVG()
+       DESC LIMIT 5
+#+end_src
+
+* Architecture
+
+#+name: Architecture
+#+begin_src mermaid :file architecture.png
+  C4Container
+     title Architecture
+     Component(s3, "S3")   
+     Component(lambda, "Lambda", "web application")
+     Component(waf, "WAF")
+     Component(alb, "ALB")
+     Boundary(cloudwatch, "CloudWatch") {
+        Component(metrics, "Metrics")
+        Component(dashboard, "Dashboard")
+     }
+     Rel(s3, lambda, "source code")
+     Rel(waf, alb, "associated resource")
+     Rel(alb, lambda, "forwards requests")   
+     Rel(waf, metrics, "sends metrics")   
+     Rel(metrics, dashboard, "from metrics")   
+#+end_src
+
+* Deployment
+
+All AWS resources of the experiment are managed by CloudFormation. The
+CloudFormation resources shall be invoked by an IAM user, see the ~iam~
+directory.
+
+Then an S3 bucket shall be created. See ~s3~ directory.
+
+After that the Lambda function shall be compiled, uploaded to S3 bucket and the
+respective Lambda function resource shall be created, see ~lambda~
+directory.
+
+Finally, the ALB, Lambda, WAF, and the dashboard is created, see ~waf-app~
+directory .

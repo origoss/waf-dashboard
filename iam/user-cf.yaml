@@ -1,0 +1,200 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: This is a user for experimenting with AWS WAF.
+Parameters:
+  S3CfStackName:
+    Type: String
+    Description: The name of the cloudformation stack that the user may create for S3 resources.
+  WafCfStackName:
+    Type: String
+    Description: The name of the cloudformation stack that the user may create for custom resources.
+  S3BucketName:
+    Type: String
+    Description: The name of the S3 bucket that the user may create.
+  HostedZoneId:
+    Type: String
+    Description: The ID of the hosted zone that you want to create DNS records in. 
+  CloudTrailS3BucketName:
+    Type: String
+    Description: The name of the S3 bucket to be created for CloudTrail logs.
+  DashboardName:
+    Type: String
+    Description: The name of the dashboard. 
+Resources:
+  CommonPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Action:
+            - lambda:Get*
+            - lambda:List*
+            - elasticloadbalancing:CreateTargetGroup
+            - elasticloadbalancing:DeleteTargetGroup
+            - elasticloadbalancing:DescribeTargetGroups
+            - elasticloadbalancing:DescribeTargetHealth
+            - elasticloadbalancing:RegisterTargets
+            - elasticloadbalancing:CreateLoadBalancer
+            - elasticloadbalancing:DeleteLoadBalancer
+            - elasticloadbalancing:DescribeLoadBalancers
+            - elasticloadbalancing:DescribeListeners 
+            - elasticloadbalancing:CreateListener
+            - elasticloadbalancing:DeleteListener
+            - elasticloadbalancing:SetSecurityGroups
+            - elasticloadbalancing:CreateRule
+            - elasticloadbalancing:ModifyRule
+            - elasticloadbalancing:SetRulePriorities
+            - elasticloadbalancing:DeleteRule
+            - elasticloadbalancing:DescribeRules
+            - elasticloadbalancing:SetWebACL
+            - ec2:DescribeSubnets
+            - ec2:CreateSecurityGroup
+            - ec2:DeleteSecurityGroup
+            - ec2:DescribeSecurityGroups
+            - ec2:AuthorizeSecurityGroupIngress
+            - route53:GetChange
+            - wafv2:CreateWebACL
+            - wafv2:GetWebACL
+            - wafv2:ListTagsForResource
+            - wafv2:DeleteWebACL
+            - wafv2:GetWebACLForResource
+            - wafv2:AssociateWebACL
+            - wafv2:UpdateWebACL
+            - cloudtrail:CreateTrail
+            - cloudtrail:DeleteTrail
+            - cloudtrail:StartLogging
+          Resource: "*"
+  LambdaPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Action:
+            - lambda:CreateFunction
+            - lambda:DeleteFunction
+            - lambda:UpdateFunctionCode
+            - lambda:InvokeFunction
+            - lambda:AddPermission 
+            - lambda:RemovePermission 
+          Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:${WafCfStackName}-*"
+  CloudFormationPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Action:
+            - cloudformation:CreateStack
+            - cloudformation:UpdateStack
+            - cloudformation:DeleteStack
+            - cloudformation:Detect*
+            - cloudformation:Describe*
+          Resource:
+            - !Sub 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${S3CfStackName}/*'
+            - !Sub 'arn:aws:cloudformation:${AWS::Region}:${AWS::AccountId}:stack/${WafCfStackName}/*'
+  S3Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Action:
+            - s3:CreateBucket
+            - s3:DeleteBucket
+            - s3:PutBucketVersioning
+            - s3:ListBucket
+            - s3:ListBucketVersions
+            - s3:PutBucketPolicy
+            - s3:DeleteBucketPolicy
+          Resource:
+            - !Sub "arn:aws:s3:::${S3BucketName}"
+            - !Sub "arn:aws:s3:::${CloudTrailS3BucketName}"
+  S3ObjectPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:GetObject
+            - s3:GetObjectVersion
+            - s3:DeleteObject
+            - s3:DeleteObjectVersion
+          Resource: !Sub "arn:aws:s3:::${S3BucketName}/*"
+  IamPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Action:
+            - iam:CreateRole
+            - iam:DeleteRole
+            - iam:GetRole
+            - iam:PassRole
+            - iam:AttachRolePolicy
+            - iam:DetachRolePolicy
+          Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/${WafCfStackName}-*"
+  LogsPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Action:
+            - logs:DescribeLogGroups
+            - logs:DescribeLogStreams
+            - logs:GetLogEvents
+          Resource: "*"
+  R53Policy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Action:
+            - route53:GetHostedZone
+            - route53:ChangeResourceRecordSets
+            - route53:ListResourceRecordSets
+          Resource: !Sub "arn:aws:route53:::hostedzone/${HostedZoneId}"
+  CloudWatchPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          Effect: Allow
+          Action:
+            - cloudwatch:GetDashboard
+            - cloudwatch:PutDashboard
+            - cloudwatch:DeleteDashboards
+          Resource: !Sub "arn:aws:cloudwatch::${AWS::AccountId}:dashboard/${DashboardName}"
+
+  CFDeployerUser:
+    Type: AWS::IAM::User
+    Properties:
+      ManagedPolicyArns:
+        - !Ref CommonPolicy
+        - !Ref LambdaPolicy
+        - !Ref CloudFormationPolicy
+        - !Ref S3Policy
+        - !Ref S3ObjectPolicy
+        - !Ref IamPolicy
+        - !Ref LogsPolicy
+        - !Ref R53Policy
+        - !Ref CloudWatchPolicy
+Outputs:
+  IamUserName:
+    Description: The name of the created IAM user.
+    Value: !Ref CFDeployerUser
+

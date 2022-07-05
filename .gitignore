@@ -1,0 +1,7 @@
+/README.tex
+/_minted-README/
+aws-access-key-id
+aws-secret-access-key
+.direnv
+/lambda/result
+/lambda/aws-lambda
